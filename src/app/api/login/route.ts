@@ -5,7 +5,11 @@ interface LoginRequest {
 	email: string;
 	password: string;
 }
-
+/**
+ * 登录接口
+ * @param request 
+ * @returns 
+ */
 export async function POST(request: Request) {
 	try {
 		const { email, password } = await request.json() as LoginRequest;
