@@ -10,7 +10,9 @@ interface __BaseEnv_CloudflareEnv {
 declare namespace Cloudflare {
 	interface Env extends __BaseEnv_CloudflareEnv {}
 }
-interface CloudflareEnv extends __BaseEnv_CloudflareEnv {}
+interface CloudflareEnv extends __BaseEnv_CloudflareEnv {
+    test_db: any;
+}
 type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
