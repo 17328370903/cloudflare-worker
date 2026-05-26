@@ -1,14 +1,11 @@
 import {NextResponse} from "next/server"
 
+export interface Env {
+    test_db: D1Database
+}
 
 
-
-export async function GET(request) {
-
+export async function GET() {
 
 
-    return NextResponse.json({
-        code: 100,
-        msg: "success"
-    })
 }

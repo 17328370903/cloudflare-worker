@@ -2,6 +2,18 @@
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## 技术栈
+
+- **框架**: Next.js 16
+- **部署**: OpenNext + Cloudflare Workers
+- **UI**: React 19 + shadcn/ui + radix-ui
+- **样式**: Tailwind CSS 4
+- **图标**: Lucide React
+- **工具库**: clsx, tailwind-merge, class-variance-authority
+- **语言**: TypeScript
+- **构建工具**: Wrangler
+- **代码规范**: ESLint
+
 ## Getting Started
 
 Read the documentation at https://opennext.js.org/cloudflare.
