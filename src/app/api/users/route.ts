@@ -9,7 +9,8 @@ export async function GET() {
         const results = await db.prepare("SELECT * FROM users").run();
         
         // 如果是模拟数据库，直接返回内存中的数据
-        const mockUsers = globalThis['__mock_users__'] || [];
+        // 使用类型断言避免 TypeScript 错误
+        const mockUsers = (globalThis as any)['__mock_users__'] || [];
         
         return NextResponse.json({
             users: mockUsers,

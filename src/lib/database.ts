@@ -39,7 +39,8 @@ class MockPreparedStatement {
 	}
 
 	async first<T = unknown>(): Promise<T | null> {
-		const users = globalThis['__mock_users__'] || [];
+		// 使用类型断言避免 TypeScript 错误
+		const users = (globalThis as any)['__mock_users__'] || [];
 		const sqlUpper = this.sql.toUpperCase();
 		
 		console.log('Mock DB first() - SQL:', this.sql);
@@ -73,8 +74,10 @@ class MockPreparedStatement {
 		console.log('Mock DB run() - SQL:', this.sql);
 		console.log('Mock DB run() - Params:', this.params);
 		
-		if (!globalThis['__mock_users__']) {
-			globalThis['__mock_users__'] = [];
+		// 使用类型断言避免 TypeScript 错误
+		const global = globalThis as any;
+		if (!global['__mock_users__']) {
+			global['__mock_users__'] = [];
 		}
 
 		const sqlUpper = this.sql.toUpperCase();
@@ -93,10 +96,10 @@ class MockPreparedStatement {
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString()
 			};
-			globalThis['__mock_users__'].push(newUser);
+			global['__mock_users__'].push(newUser);
 			
 			console.log('Mock DB - 插入用户（GitHub）成功:', { email, github_id, github_login });
-			console.log('Mock DB - 当前用户总数:', globalThis['__mock_users__'].length);
+			console.log('Mock DB - 当前用户总数:', global['__mock_users__'].length);
 			
 			return {
 				success: true,
@@ -117,10 +120,10 @@ class MockPreparedStatement {
 				created_at: new Date().toISOString(),
 				updated_at: new Date().toISOString()
 			};
-			globalThis['__mock_users__'].push(newUser);
+			global['__mock_users__'].push(newUser);
 			
 			console.log('Mock DB - 插入用户（邮箱）成功:', email);
-			console.log('Mock DB - 当前用户总数:', globalThis['__mock_users__'].length);
+			console.log('Mock DB - 当前用户总数:', global['__mock_users__'].length);
 			
 			return {
 				success: true,
@@ -131,7 +134,7 @@ class MockPreparedStatement {
 
 		// 更新用户（支持 GitHub 字段）
 		if (sqlUpper.includes('UPDATE USERS') && this.sql.includes('nickname')) {
-			const users = globalThis['__mock_users__'] as User[];
+			const users = global['__mock_users__'] as User[];
 			
 			// 新格式：更新 GitHub 信息（4个参数）
 			if (this.params.length === 4) {
@@ -177,7 +180,8 @@ class MockPreparedStatement {
 	}
 
 	async all<T = unknown>(): Promise<D1Result<T>> {
-		const users = globalThis['__mock_users__'] || [];
+		// 使用类型断言避免 TypeScript 错误
+		const users = (globalThis as any)['__mock_users__'] || [];
 		return {
 			success: true,
 			results: users as T[],
@@ -212,8 +216,10 @@ export function getDB() {
 
 // 初始化模拟数据库（开发环境）
 export function initMockDB() {
-	if (!globalThis['__mock_users__']) {
-		globalThis['__mock_users__'] = [];
+	// 使用类型断言避免 TypeScript 错误
+	const global = globalThis as any;
+	if (!global['__mock_users__']) {
+		global['__mock_users__'] = [];
 		console.log('Mock DB 已初始化');
 	}
 }
