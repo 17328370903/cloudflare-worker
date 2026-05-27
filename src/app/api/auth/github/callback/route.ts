@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 				}),
 			}, 3);
 
-			const tokenData = await tokenResponse.json();
+			const tokenData = await tokenResponse.json() as { access_token?: string };
 			
 			if (!tokenData.access_token) {
 				console.log(`GitHub OAuth 获取 token 失败: ${JSON.stringify(tokenData)}`);
