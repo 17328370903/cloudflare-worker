@@ -82,7 +82,7 @@ export async function GET(request: Request) {
 				},
 			}, 3);
 
-			const githubUser = await userResponse.json();
+			const githubUser = await userResponse.json() as { id: number; login: string; name?: string; email?: string };
 			console.log(`GitHub 用户信息: ${JSON.stringify({ id: githubUser.id, login: githubUser.login, name: githubUser.name })}`);
 
 			// 3. 获取用户邮箱
@@ -93,13 +93,13 @@ export async function GET(request: Request) {
 				},
 			}, 3);
 
-			const emails = await emailResponse.json();
+			const emails = await emailResponse.json() as Array<{ primary: boolean; verified: boolean; email: string }>;
 			
 			// 检查 emails 是否是数组
 			let primaryEmail: string | undefined;
 			if (Array.isArray(emails)) {
 				// 从数组中查找主要且已验证的邮箱
-				const verifiedEmail = emails.find((e: { primary: boolean; verified: boolean }) => e.primary && e.verified);
+				const verifiedEmail = emails.find((e) => e.primary && e.verified);
 				primaryEmail = verifiedEmail?.email || githubUser.email;
 				console.log(`从邮箱列表找到邮箱: ${primaryEmail}`);
 			} else {
