@@ -36,11 +36,11 @@ export function Header() {
 					</nav>
 
 					<div className="hidden md:flex items-center gap-4">
-						<Button variant="ghost" className="text-gray-600">
-							登录
+						<Button variant="ghost" asChild className="text-gray-600">
+							<Link href="/login">登录</Link>
 						</Button>
-						<Button className="bg-blue-600 hover:bg-blue-700">
-							注册
+						<Button className="bg-blue-600 hover:bg-blue-700" asChild>
+							<Link href="/register">注册</Link>
 						</Button>
 					</div>
 
@@ -66,8 +66,12 @@ export function Header() {
 								</Link>
 							))}
 							<div className="flex flex-col gap-2 mt-4">
-								<Button variant="outline" className="w-full">登录</Button>
-								<Button className="w-full bg-blue-600 hover:bg-blue-700">注册</Button>
+								<Button variant="outline" className="w-full" asChild>
+									<Link href="/login" onClick={() => setIsMenuOpen(false)}>登录</Link>
+								</Button>
+								<Button className="w-full bg-blue-600 hover:bg-blue-700" asChild>
+									<Link href="/register" onClick={() => setIsMenuOpen(false)}>注册</Link>
+								</Button>
 							</div>
 						</nav>
 					</div>

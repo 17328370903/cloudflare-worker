@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, GitBranch } from "lucide-react";
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
@@ -131,13 +131,13 @@ export default function LoginPage() {
 				</div>
 
 				<div className="mt-6">
-					<Button
-						variant="outline"
-						className="w-full border-gray-300 text-gray-700 hover:bg-gray-50"
+					<a
+						href="/api/auth/github"
+						className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
 					>
-						<ArrowRight className="mr-2 h-5 w-5" />
+						<GitBranch className="h-5 w-5" />
 						使用 GitHub 登录
-					</Button>
+					</a>
 				</div>
 			</div>
 		</div>

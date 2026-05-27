@@ -1,0 +1,20 @@
+import { NextResponse } from "next/server";
+
+export function GET() {
+	// 获取 GitHub OAuth 配置
+	const clientId = process.env.GITHUB_CLIENT_ID;
+	const callbackUrl = process.env.GITHUB_CALLBACK_URL || "http://localhost:3000/api/auth/github/callback";
+
+	if (!clientId) {
+		return NextResponse.json({ error: "GitHub Client ID 未配置" }, { status: 500 });
+	}
+
+	// GitHub OAuth 授权 URL
+	const githubAuthUrl = new URL("https://github.com/login/oauth/authorize");
+	githubAuthUrl.searchParams.set("client_id", clientId);
+	githubAuthUrl.searchParams.set("redirect_uri", callbackUrl);
+	githubAuthUrl.searchParams.set("scope", "user:email"); // 请求用户邮箱权限
+
+	// 重定向到 GitHub 授权页面
+	return NextResponse.redirect(githubAuthUrl.toString());
+}
