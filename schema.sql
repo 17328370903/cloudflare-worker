@@ -14,6 +14,3 @@ CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 
 -- 示例数据（可选）
 -- INSERT INTO users (email, password, nickname) VALUES ('test@example.com', 'hashed_password', '测试用户');
-
--- 其他表...
-DROP TABLE IF EXISTS Customers;

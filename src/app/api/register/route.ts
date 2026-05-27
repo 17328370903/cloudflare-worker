@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { codeStore, users } from "@/lib/store";
+import { hashPassword } from "@/lib/crypto";
 
 interface RegisterRequest {
 	email: string;
@@ -35,14 +36,43 @@ export async function POST(request: Request) {
 			return NextResponse.json({ message: "验证码错误" }, { status: 400 });
 		}
 
-		// 使用内存存储用户（避免构建时访问数据库绑定）
-		users.set(email, { password, nickname });
-		console.log(`用户注册成功(内存): ${email}`);
+		// 使用Web Crypto API加密密码
+		const hashedPassword = await hashPassword(password);
+
+		let savedToDatabase = false;
+
+		// 尝试保存到 Cloudflare D1 数据库（使用 globalThis 避免 TypeScript 类型错误）
+		try {
+			// @ts-ignore - Cloudflare D1 binding via globalThis
+			const db = (globalThis as any).test_db;
+			if (db) {
+				const result = await db.prepare(
+					"INSERT INTO users (email, password, nickname) VALUES (?, ?, ?)"
+				).bind(email, hashedPassword, nickname).run();
+
+				if (result.success) {
+					savedToDatabase = true;
+					console.log(`用户注册成功(数据库): ${email}`);
+				}
+			}
+		} catch (dbError) {
+			console.warn("数据库存储失败，使用内存存储:", dbError);
+		}
+
+		// 如果数据库存储失败，使用内存存储作为备用
+		if (!savedToDatabase) {
+			users.set(email, { password: hashedPassword, nickname });
+			console.log(`用户注册成功(内存): ${email}`);
+		}
 
 		// 删除已使用的验证码
 		codeStore.delete(email);
 
-		return NextResponse.json({ success: true, message: "注册成功" });
+		return NextResponse.json({ 
+			success: true, 
+			message: "注册成功",
+			storedInDatabase: savedToDatabase
+		});
 	} catch (error: any) {
 		console.error("注册失败:", error);
 		return NextResponse.json({ message: error.message || "服务器错误" }, { status: 500 });
