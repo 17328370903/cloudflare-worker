@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { codeStore } from "@/lib/store";
-import { env } from "cloudflare:workers";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -25,8 +24,8 @@ export async function POST(request: Request) {
 		codeStore.set(email, { code, expiresAt });
 
 		// 发送邮件（仅在配置了 API Key 时发送）
-		if ((env as any).RESEND_API_KEY &&(env as any).RESEND_API_KEY !== "your_resend_api_key_here") {
-			const fromEmail = (env as any).RESEND_FROM_EMAIL;
+		if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "your_resend_api_key_here") {
+			const fromEmail = process.env.RESEND_FROM_EMAIL || "verification@example.com";
 			
 			await resend.emails.send({
 				from: fromEmail,

@@ -61,12 +61,5 @@
       "database_name": "test",
       "database_id": "c7266267-2c72-4284-b6fe-2d9ec7d78730"
     }
-  ],
-  "vars": {
-    "GITHUB_CLIENT_ID": "Iv23liQtzYFxE8s4Irua",
-    "GITHUB_CALLBACK_URL": "http://localhost:3000/api/auth/github/callback",
-    "GITHUB_CLIENT_SECRET": "8bf076163f5e844a2528604fe0b3ac0cfcd0f746",
-    "RESEND_API_KEY":"re_Qh5HxXoL_3zGfhgUvuC3nPw18ePqWKvtF",
-    "RESEND_FROM_EMAIL":"nboarding@resend.dev",
-  }
+  ]
 }
