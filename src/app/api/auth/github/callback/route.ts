@@ -74,6 +74,7 @@ export async function GET(request: Request) {
 				headers: {
 					"Content-Type": "application/json",
 					"Accept": "application/json",
+					"User-Agent": "OpenNext-Starter/1.0.0",
 				},
 				body: JSON.stringify({
 					client_id: clientId,
@@ -99,6 +100,7 @@ export async function GET(request: Request) {
 				headers: {
 					Authorization: `Bearer ${tokenData.access_token}`,
 					"Accept": "application/json",
+					"User-Agent": "OpenNext-Starter/1.0.0",
 				},
 			}, 3);
 
