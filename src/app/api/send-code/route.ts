@@ -9,6 +9,7 @@ interface SendCodeRequest {
 }
 
 export async function POST(request: Request) {
+	try{
 		const {env} = getCloudflareContext();
 		const resend = new Resend((env as any).RESEND_API_KEY);
 
