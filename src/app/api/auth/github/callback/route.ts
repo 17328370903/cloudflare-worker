@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 					client_id: clientId,
 					client_secret: clientSecret,
 					code: code,
-					redirect_uri: process.env.GITHUB_CALLBACK_URL || "http://localhost:3000/api/auth/github/callback",
+					redirect_uri: process.env.GITHUB_CALLBACK_URL,
 				}),
 			}, 3);
 
