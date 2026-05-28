@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { codeStore } from "@/lib/store";
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 
 interface SendCodeRequest {
@@ -8,8 +9,8 @@ interface SendCodeRequest {
 }
 
 export async function POST(request: Request) {
-	try {
-		const resend = new Resend(process.env.RESEND_API_KEY);
+		const {env} = getCloudflareContext();
+		const resend = new Resend((env as any).RESEND_API_KEY);
 
 		const { email } = await request.json() as SendCodeRequest;
 
@@ -24,9 +25,8 @@ export async function POST(request: Request) {
 		// 存储验证码
 		codeStore.set(email, { code, expiresAt });
 
-		// 发送邮件（仅在配置了 API Key 时发送）
-		if (process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== "your_resend_api_key_here") {
-			const fromEmail = process.env.RESEND_FROM_EMAIL || "verification@example.com";
+		if ((env as any).RESEND_API_KEY ) {
+			const fromEmail = (env as any).RESEND_FROM_EMAIL;
 			
 			await resend.emails.send({
 				from: fromEmail,

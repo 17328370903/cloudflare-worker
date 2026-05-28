@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { insert,update } from "@/lib/database";
 import { getUserByGithubId } from "@/model/users";
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 // 重试函数
 async function fetchWithRetry(url: string, options: RequestInit, retries: number = 3): Promise<Response> {
@@ -26,6 +27,7 @@ export async function GET(request: Request) {
 		const url = new URL(request.url);
 		const code = url.searchParams.get("code");
 		const error = url.searchParams.get("error");
+		const {env} = getCloudflareContext();
 
 		// 检查是否有错误
 		if (error) {
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
 		}
 
 		// 获取 GitHub OAuth 配置
-		const clientId = process.env.GITHUB_CLIENT_ID;
+		const clientId = (env as any).GITHUB_CLIENT_ID;
 		const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
 		if (!clientId || !clientSecret) {
@@ -61,7 +63,7 @@ export async function GET(request: Request) {
 					client_id: clientId,
 					client_secret: clientSecret,
 					code: code,
-					redirect_uri: process.env.GITHUB_CALLBACK_URL,
+					redirect_uri: (env as any).GITHUB_CALLBACK_URL,
 				}),
 			}, 3);
 

@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 
 export function GET() {
+	const {env} = getCloudflareContext();
 	// 获取 GitHub OAuth 配置
-	const clientId = process.env.GITHUB_CLIENT_ID;
-	const callbackUrl = process.env.GITHUB_CALLBACK_URL;
+	const clientId = (env as any).GITHUB_CLIENT_ID;
+	const callbackUrl = (env as any).GITHUB_CALLBACK_URL;
 
 	if (!clientId) {
 		return NextResponse.json({ error: "GitHub Client ID 未配置" }, { status: 500 });
