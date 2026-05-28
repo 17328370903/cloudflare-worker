@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff, Mail, Lock, GitBranch } from "lucide-react";
+import { Toast, ToastType } from "@/components/Toast";
 
 export default function LoginPage() {
 	const [email, setEmail] = useState("");
@@ -11,6 +12,7 @@ export default function LoginPage() {
 	const [showPassword, setShowPassword] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState("");
+	const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -27,14 +29,24 @@ export default function LoginPage() {
 			interface ApiResponse {
 				success?: boolean;
 				message?: string;
-				data?: { email: string; nickname: string };
+				data?: { email: string; nickname: string; id: number; github_login?: string; avatar_url?: string };
 			}
 
 			const data = await response.json() as ApiResponse;
 
 			if (response.ok) {
-				alert("登录成功！");
-				window.location.href = "/";
+				// 将用户信息保存到 localStorage
+				if (data.data) {
+					localStorage.setItem(`user_${data.data.id}`, JSON.stringify(data.data));
+				}
+				
+				// 显示成功提示
+				setToast({ message: "登录成功！", type: "success" });
+				
+				// 延迟跳转到首页
+				setTimeout(() => {
+					window.location.href = "/";
+				}, 1500);
 			} else {
 				setError(data.message || "登录失败");
 			}
@@ -47,6 +59,14 @@ export default function LoginPage() {
 
 	return (
 		<div className="min-h-screen flex items-center justify-center p-4">
+			{toast && (
+				<Toast 
+					message={toast.message} 
+					type={toast.type} 
+					onClose={() => setToast(null)} 
+				/>
+			)}
+			
 			<div className="w-full max-w-md">
 				<div className="text-center mb-8">
 					<h1 className="text-3xl font-bold text-gray-900 mb-2">欢迎回来</h1>

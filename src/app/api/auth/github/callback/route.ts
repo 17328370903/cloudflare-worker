@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getDB } from "@/lib/database";
+import { insert,update } from "@/lib/database";
+import { getUserByGithubId } from "@/model/users";
 
 // 重试函数
 async function fetchWithRetry(url: string, options: RequestInit, retries: number = 3): Promise<Response> {
@@ -40,7 +41,6 @@ export async function GET(request: Request) {
 		// 获取 GitHub OAuth 配置
 		const clientId = process.env.GITHUB_CLIENT_ID;
 		const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-		const callbackUrl = process.env.GITHUB_CALLBACK_URL || "http://localhost:3000/api/auth/github/callback";
 
 		if (!clientId || !clientSecret) {
 			console.log("GitHub OAuth 配置未设置");
@@ -61,7 +61,7 @@ export async function GET(request: Request) {
 					client_id: clientId,
 					client_secret: clientSecret,
 					code: code,
-					redirect_uri: callbackUrl,
+					redirect_uri: process.env.GITHUB_CALLBACK_URL || "http://localhost:3000/api/auth/github/callback",
 				}),
 			}, 3);
 
@@ -82,81 +82,45 @@ export async function GET(request: Request) {
 				},
 			}, 3);
 
-			const githubUser = await userResponse.json() as { id: number; login: string; name?: string; email?: string };
-			console.log(`GitHub 用户信息: ${JSON.stringify({ id: githubUser.id, login: githubUser.login, name: githubUser.name })}`);
+			const githubUser = await userResponse.json() as { id: number; login: string; name?: string; email?: string; avatar_url?: string };
 
-			// 3. 获取用户邮箱
-			console.log("正在获取 GitHub 用户邮箱...");
-			const emailResponse = await fetchWithRetry("https://api.github.com/user/emails", {
-				headers: {
-					Authorization: `Bearer ${tokenData.access_token}`,
-				},
-			}, 3);
+			console.log(githubUser)
 
-			const emails = await emailResponse.json() as Array<{ primary: boolean; verified: boolean; email: string }>;
-			
-			// 检查 emails 是否是数组
-			let primaryEmail: string | undefined;
-			if (Array.isArray(emails)) {
-				// 从数组中查找主要且已验证的邮箱
-				const verifiedEmail = emails.find((e) => e.primary && e.verified);
-				primaryEmail = verifiedEmail?.email || githubUser.email;
-				console.log(`从邮箱列表找到邮箱: ${primaryEmail}`);
-			} else {
-				// 如果不是数组，输出调试信息并尝试其他方式获取邮箱
-				console.log(`邮箱响应不是数组，类型: ${typeof emails}`);
-				console.log(`邮箱响应内容: ${JSON.stringify(emails)}`);
-				console.log(`githubUser.email: ${githubUser.email}`);
-				primaryEmail = githubUser.email;
-			}
-
-			// 如果仍然没有邮箱，使用 GitHub login 作为邮箱（创建一个虚拟邮箱）
-			if (!primaryEmail) {
-				console.log("用户没有公开邮箱，使用 GitHub login 创建虚拟邮箱");
-				primaryEmail = `${githubUser.login}@github.local`;
-			}
-
-			console.log(`GitHub 用户邮箱: ${primaryEmail}`);
-
-			// 4. 在数据库中创建或更新用户
-			const db = getDB();
-			
 			// 检查用户是否已存在（通过邮箱或 GitHub ID）
-			const existingUser = await db.prepare(
-				"SELECT * FROM users WHERE email = ? OR github_id = ?"
-			).bind(primaryEmail, githubUser.id).first();
+			const existingUser = await getUserByGithubId(githubUser.id)
 
-			let userId: number | undefined;
 			let isNewUser = false;
+			let userId: number | undefined;
 
+			const ip  = request.headers.get('x-forwarded-for') || '';
 			if (existingUser) {
-				console.log(`用户已存在，更新信息: ${primaryEmail}`);
-				const updateResult = await db.prepare(
-					"UPDATE users SET nickname = ?, github_id = ?, github_login = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
-				).bind(githubUser.login || githubUser.name || "GitHub用户", githubUser.id, githubUser.login, existingUser.id).run();
-				userId = existingUser.id;
+				const updateResult = await update(
+					"UPDATE users SET name = ?, github_id = ?, updated_at = CURRENT_TIMESTAMP,last_login_at = CURRENT_TIMESTAMP,last_login_ip = ?,avatar_url = ?  WHERE id = ?"
+				,[ githubUser.name, githubUser.id, ip,githubUser.avatar_url, existingUser.id]);
+				 userId = existingUser.id;
 			} else {
-				console.log(`创建新用户: ${primaryEmail}`);
-				const insertResult = await db.prepare(
-					"INSERT INTO users (email, password, nickname, github_id, github_login) VALUES (?, ?, ?, ?, ?)"
-				).bind(primaryEmail, "github_oauth", githubUser.login || githubUser.name || "GitHub用户", githubUser.id, githubUser.login).run();
-				userId = insertResult.meta?.lastRowId;
+				const insertResult = await insert(
+					"INSERT INTO users (email, password, name, github_id,last_login_ip,last_login_at,avatar_url) VALUES (?, ?, ?, ?, ?, ?, ?)"
+				,['', "",  githubUser.name , githubUser.id, ip, new Date().toISOString(),githubUser.avatar_url]);
+				 userId = insertResult.meta?.last_row_id;
 				isNewUser = true;
 			}
 
-			console.log(`${isNewUser ? '新用户注册' : '用户登录'}成功: ${primaryEmail}, 用户ID: ${userId}`);
 
-			// 5. 重定向到首页
-			const response = NextResponse.redirect(new URL("/", request.url));
-			
-			response.cookies.set("user_email", primaryEmail, {
-				httpOnly: true,
-				secure: process.env.NODE_ENV === "production",
-				maxAge: 24 * 60 * 60,
-			});
+			// 5. 重定向到客户端回调页面（传递用户信息）
+			const callbackUrl = new URL("/auth/callback", request.url);
+			callbackUrl.searchParams.set("name", githubUser.name || "GitHub用户");
+			if (githubUser.login) {
+				callbackUrl.searchParams.set("github_login", githubUser.login);
+			}
+			if (githubUser.avatar_url) {
+				callbackUrl.searchParams.set("avatar_url", githubUser.avatar_url);
+			}
+
+			const response = NextResponse.redirect(callbackUrl.toString());
 			
 			response.cookies.set("user_id", String(userId), {
-				httpOnly: true,
+				httpOnly: false,
 				secure: process.env.NODE_ENV === "production",
 				maxAge: 24 * 60 * 60,
 			});

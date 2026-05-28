@@ -49,3 +49,6 @@ next-env.d.ts
 
 
 !.dev.vars.example
+.env.local
+.env.*.local
+.env.production
