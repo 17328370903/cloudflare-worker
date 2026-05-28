@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 
-export function GET() {
-	const {env} = getCloudflareContext();
+export async function GET() {
+	const {env} = await getCloudflareContext();
 	// 获取 GitHub OAuth 配置
 	const clientId = (env as any).GITHUB_CLIENT_ID;
 	const callbackUrl = (env as any).GITHUB_CALLBACK_URL;
