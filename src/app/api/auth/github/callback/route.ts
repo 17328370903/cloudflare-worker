@@ -42,7 +42,7 @@ export async function GET(request: Request) {
 
 		// 获取 GitHub OAuth 配置
 		const clientId = (env as any).GITHUB_CLIENT_ID;
-		const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+		const clientSecret = (env as any).GITHUB_CLIENT_SECRET;
 
 		if (!clientId || !clientSecret) {
 			console.log("GitHub OAuth 配置未设置");
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
 			
 			response.cookies.set("user_id", String(userId), {
 				httpOnly: false,
-				secure: process.env.NODE_ENV === "production",
+				secure: true,
 				maxAge: 24 * 60 * 60,
 			});
 
