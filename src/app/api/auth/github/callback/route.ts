@@ -3,6 +3,25 @@ import { insert,update } from "@/lib/database";
 import { getUserByGithubId } from "@/model/users";
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
+// 安全的 JSON 解析函数
+async function safeJsonParse(response: Response): Promise<any> {
+	try {
+		const text = await response.text();
+		if (!text) {
+			throw new Error("响应为空");
+		}
+		try {
+			return JSON.parse(text);
+		} catch {
+			console.error("JSON 解析失败，响应内容:", text.substring(0, 500));
+			throw new Error(`无效的 JSON 响应: ${text.substring(0, 100)}...`);
+		}
+	} catch (error) {
+		console.error("读取响应失败:", error);
+		throw error;
+	}
+}
+
 // 重试函数
 async function fetchWithRetry(url: string, options: RequestInit, retries: number = 3): Promise<Response> {
     for (let i = 0; i < retries; i++) {
@@ -15,7 +34,6 @@ async function fetchWithRetry(url: string, options: RequestInit, retries: number
             if (i === retries - 1) {
                 throw error;
             }
-            // 等待后重试
             await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
         }
     }
@@ -29,7 +47,6 @@ export async function GET(request: Request) {
 		const error = url.searchParams.get("error");
 		const {env} = getCloudflareContext();
 
-		// 检查是否有错误
 		if (error) {
 			console.log(`GitHub OAuth 错误: ${error}`);
 			return NextResponse.redirect(new URL(`/login?error=${error}`, request.url));
@@ -40,7 +57,6 @@ export async function GET(request: Request) {
 			return NextResponse.redirect(new URL("/login?error=missing_code", request.url));
 		}
 
-		// 获取 GitHub OAuth 配置
 		const clientId = (env as any).GITHUB_CLIENT_ID;
 		const clientSecret = (env as any).GITHUB_CLIENT_SECRET;
 
@@ -52,7 +68,7 @@ export async function GET(request: Request) {
 		console.log("正在获取 GitHub access_token...");
 
 		try {
-			// 1. 使用 code 换取 access_token（带重试）
+			// 1. 使用 code 换取 access_token
 			const tokenResponse = await fetchWithRetry("https://github.com/login/oauth/access_token", {
 				method: "POST",
 				headers: {
@@ -67,7 +83,8 @@ export async function GET(request: Request) {
 				}),
 			}, 3);
 
-			const tokenData = await tokenResponse.json() as { access_token?: string };
+			// 使用安全的 JSON 解析
+			const tokenData = await safeJsonParse(tokenResponse) as { access_token?: string };
 			
 			if (!tokenData.access_token) {
 				console.log(`GitHub OAuth 获取 token 失败: ${JSON.stringify(tokenData)}`);
@@ -81,37 +98,36 @@ export async function GET(request: Request) {
 			const userResponse = await fetchWithRetry("https://api.github.com/user", {
 				headers: {
 					Authorization: `Bearer ${tokenData.access_token}`,
+					"Accept": "application/json",
 				},
 			}, 3);
 
-			const githubUser = await userResponse.json() as { id: number; login: string; name?: string; email?: string; avatar_url?: string };
+			// 使用安全的 JSON 解析
+			const githubUser = await safeJsonParse(userResponse) as { id: number; login: string; name?: string; email?: string; avatar_url?: string };
 
-			console.log(githubUser)
+			console.log("GitHub 用户信息:", githubUser);
 
-			// 检查用户是否已存在（通过邮箱或 GitHub ID）
+			// 检查用户是否已存在
 			const existingUser = await getUserByGithubId(githubUser.id)
 
-			let isNewUser = false;
 			let userId: number | undefined;
 
-			const ip  = request.headers.get('x-forwarded-for') || '';
+			const ip = request.headers.get('x-forwarded-for') || '';
 			if (existingUser) {
-				const updateResult = await update(
-					"UPDATE users SET name = ?, github_id = ?, updated_at = CURRENT_TIMESTAMP,last_login_at = CURRENT_TIMESTAMP,last_login_ip = ?,avatar_url = ?  WHERE id = ?"
-				,[ githubUser.name, githubUser.id, ip,githubUser.avatar_url, existingUser.id]);
-				 userId = existingUser.id;
+				await update(
+					"UPDATE users SET name = ?, github_id = ?, updated_at = CURRENT_TIMESTAMP,last_login_at = CURRENT_TIMESTAMP,last_login_ip = ?,avatar_url = ? WHERE id = ?"
+				,[ githubUser.name, githubUser.id, ip, githubUser.avatar_url, existingUser.id]);
+				userId = existingUser.id;
 			} else {
 				const insertResult = await insert(
 					"INSERT INTO users (email, password, name, github_id,last_login_ip,last_login_at,avatar_url) VALUES (?, ?, ?, ?, ?, ?, ?)"
-				,['', "",  githubUser.name , githubUser.id, ip, new Date().toISOString(),githubUser.avatar_url]);
-				 userId = insertResult.meta?.last_row_id;
-				isNewUser = true;
+				,['', "", githubUser.name || githubUser.login, githubUser.id, ip, new Date().toISOString(), githubUser.avatar_url]);
+				userId = insertResult.meta?.last_row_id;
 			}
 
-
-			// 5. 重定向到客户端回调页面（传递用户信息）
+			// 重定向到客户端回调页面
 			const callbackUrl = new URL("/auth/callback", request.url);
-			callbackUrl.searchParams.set("name", githubUser.name || "GitHub用户");
+			callbackUrl.searchParams.set("name", githubUser.name || githubUser.login || "GitHub用户");
 			if (githubUser.login) {
 				callbackUrl.searchParams.set("github_login", githubUser.login);
 			}
@@ -123,7 +139,7 @@ export async function GET(request: Request) {
 			
 			response.cookies.set("user_id", String(userId), {
 				httpOnly: false,
-				secure: true,
+				secure: process.env.NODE_ENV === "production",
 				maxAge: 24 * 60 * 60,
 			});
 
