@@ -9,7 +9,7 @@ export async function GET() {
 	const callbackUrl = (env as any).GITHUB_CALLBACK_URL;
 
 	if (!clientId) {
-		return NextResponse.json({ error: "GitHub Client ID 未配置" }, { status: 500 });
+		return NextResponse.json({ error: "GitHub Client ID 未配置" ,env:JSON.stringify(env)}, { status: 500 });
 	}
 
 	// GitHub OAuth 授权 URL
