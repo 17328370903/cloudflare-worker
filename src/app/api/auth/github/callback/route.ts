@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { insert,update } from "@/lib/database";
 import { getUserByGithubId } from "@/model/users";
+import { env } from "cloudflare:workers";
 
 // 重试函数
 async function fetchWithRetry(url: string, options: RequestInit, retries: number = 3): Promise<Response> {
@@ -39,9 +40,11 @@ export async function GET(request: Request) {
 		}
 
 		// 获取 GitHub OAuth 配置
-		const clientId = process.env.GITHUB_CLIENT_ID;
-		const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+		const clientId = (env as any).GITHUB_CLIENT_ID;
+		const clientSecret = (env as any).GITHUB_CLIENT_SECRET as string;
 
+
+		
 		if (!clientId || !clientSecret) {
 			console.log("GitHub OAuth 配置未设置");
 			return NextResponse.redirect(new URL("/login?error=config_error", request.url));
@@ -61,7 +64,7 @@ export async function GET(request: Request) {
 					client_id: clientId,
 					client_secret: clientSecret,
 					code: code,
-					redirect_uri: process.env.GITHUB_CALLBACK_URL,
+					redirect_uri: (env as any).GITHUB_CALLBACK_URL,
 				}),
 			}, 3);
 
@@ -121,7 +124,7 @@ export async function GET(request: Request) {
 			
 			response.cookies.set("user_id", String(userId), {
 				httpOnly: false,
-				secure: process.env.NODE_ENV === "production",
+				secure: true,
 				maxAge: 24 * 60 * 60,
 			});
 

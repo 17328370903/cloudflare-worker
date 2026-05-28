@@ -65,7 +65,7 @@ export async function POST(request: Request) {
 
 		response.cookies.set("user_id", String(userData.id), {
 			httpOnly: false,
-			secure: process.env.NODE_ENV === "production",
+			secure: true,
 			maxAge: 24 * 60 * 60,
 			sameSite: "strict"
 		});
