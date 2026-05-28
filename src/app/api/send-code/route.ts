@@ -2,16 +2,13 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { codeStore } from "@/lib/store";
 
-
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendCodeRequest {
 	email: string;
 }
 
-export async function POST(request: Request, { env }: { env: { RESEND_API_KEY?: string } }) {
-
-	
-	const resend = new Resend(env?.RESEND_API_KEY || process.env.RESEND_API_KEY);
+export async function POST(request: Request) {
 	try {
 		const { email } = await request.json() as SendCodeRequest;
 
