@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { codeStore } from "@/lib/store";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 interface SendCodeRequest {
 	email: string;
@@ -10,6 +9,8 @@ interface SendCodeRequest {
 
 export async function POST(request: Request) {
 	try {
+		const resend = new Resend(process.env.RESEND_API_KEY);
+
 		const { email } = await request.json() as SendCodeRequest;
 
 		if (!email) {
